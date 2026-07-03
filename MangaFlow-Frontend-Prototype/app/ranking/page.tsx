@@ -392,7 +392,7 @@ export default function SeriesRankingPage() {
                           <div className="flex items-center gap-4">
                             {item.coverImageUrl ? (
                               <img 
-                                src={`${API_BASE_URL}${item.coverImageUrl}`} 
+                                src={item.coverImageUrl.startsWith('http') ? item.coverImageUrl : `${API_BASE_URL}${item.coverImageUrl}`} 
                                 alt={item.title} 
                                 className="w-12 h-16 rounded object-cover border border-[#1A1D1F]"
                               />

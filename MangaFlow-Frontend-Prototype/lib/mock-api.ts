@@ -963,6 +963,17 @@ export async function handleMockRequest(url: string, init?: RequestInit): Promis
   if (path === "/api/data/audit-logs" && method === "GET") {
     const result = db.auditLogs.map(l => {
       const userObj = db.users.find(u => u.id === l.userId)
+      let category: "series" | "chapter" | "user" | "system" | "payment" = "system"
+      if (l.entityType === "Series" || l.entityType === "Proposal") {
+        category = "series"
+      } else if (l.entityType === "Chapter" || l.entityType === "Page" || l.entityType === "Task") {
+        category = "chapter"
+      } else if (l.entityType === "User") {
+        category = "user"
+      } else if (l.entityType === "Payment") {
+        category = "payment"
+      }
+
       return {
         id: l.auditLogId,
         user: {
@@ -975,7 +986,7 @@ export async function handleMockRequest(url: string, init?: RequestInit): Promis
         entityName: l.entityId ? `${l.entityType} (ID: ${l.entityId.substring(0, 8)})` : l.entityType,
         details: l.detailsJson || "No details available.",
         timestamp: l.createdAt,
-        category: l.entityType === "Series" || l.entityType === "Chapter" ? "publishing" : "production"
+        category: category
       }
     })
     return { status: 200, body: result }
@@ -1249,6 +1260,35 @@ export async function handleMockRequest(url: string, init?: RequestInit): Promis
     const result = list.map(c => {
       const ser = db.series.find(s => s.id === c.seriesId)
       const mka = db.users.find(u => u.id === ser?.mangakaId)
+      
+      const chapterPages = db.pages.filter(p => p.chapterId === c.chapterId).map(p => {
+        const pageAnn = db.pageAnnotations.filter(a => a.pageId === p.pageId).map(a => ({
+          id: a.annotationId,
+          annotationId: a.annotationId,
+          pageId: a.pageId,
+          createdById: a.createdById,
+          x: a.x,
+          y: a.y,
+          width: a.width,
+          height: a.height,
+          body: a.body,
+          status: a.status,
+          createdAt: a.createdAt
+        }))
+        
+        return {
+          id: p.pageId,
+          pageId: p.pageId,
+          chapterId: p.chapterId,
+          number: p.pageNumber,
+          pageNumber: p.pageNumber,
+          status: p.status,
+          imageUrl: p.currentImageUrl,
+          currentImageUrl: p.currentImageUrl,
+          annotations: pageAnn
+        }
+      })
+
       return {
         chapterId: c.chapterId,
         chapterNumber: c.chapterNumber,
@@ -1260,7 +1300,8 @@ export async function handleMockRequest(url: string, init?: RequestInit): Promis
         seriesId: c.seriesId,
         seriesTitle: ser?.title || "Unknown",
         author: mka?.fullName || "Yuki Tanaka",
-        coverImageUrl: ser?.coverImageUrl || null
+        coverImageUrl: ser?.coverImageUrl || null,
+        pages: chapterPages
       }
     })
     return { status: 200, body: result }
